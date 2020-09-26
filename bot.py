@@ -25,31 +25,46 @@ async def on_ready():
 
 @bot.command(name="roll", help="Lets roll some n-sided dice! Format is !roll 1d20+3d10-5d8+6")
 async def diceRoll(ctx, dice:str):
+	'''
+	A simple dice roller that takes in arguments of the form mdn+C where C is a constant or another mdn expression
+	m and n are variables, d is the char 'd'. Also handles subtraction signs.
+	Examples:
+	!roll 1d5+3
+	!roll 10d8-2
+	!roll 1d2+1d4-1d6+1d8
+	'''
 
-	# Refactor to allow this subfunction to return messages to build a nicer message format
+	# TODO: Probably restrict user inputs more? 
+	# Reconsider using eval (pretty obvious potential vulnerability)
+	# Improve embed formatting?
+	# Transition into a seperate .py script probably? This function is pretty verbose and it would be good to keep this .py file high level functions
 
+
+	# Subfunction: Evaluates an expression of the form 1d20. Or a constant, eg: 5.
+	# Returns a list of the values (multiplies by - if passed in that modifier)
+	# Valid modifiers are '+' and '-'
 	def resolve(expr, modifier):
 		if expr == "":
-			return 0
-		total = 0
-		if "d" in expr:
-			newExpr = expr.split("d")
+			return []
+		results = []
+		if "d" not in expr:
+			return [eval(modifier+str(expr))]
 
-			diceToRoll = int(newExpr[0])
-			diceSides = int(newExpr[1])
-			for i in range(diceToRoll):
-				result = random.randint(1, diceSides)
-				total += result
-				print("Rolled: " + str(result) + " on " + expr)
-			total = eval(modifier+str(total))
+		newExpr = expr.split("d")
+		diceToRoll = int(newExpr[0])
+		diceSides = int(newExpr[1])
 
-		else:
-			return eval(modifier+str(expr))
-		return total
+		if diceSides == 0:
+			raise commands.BadArgument(message="Cannot roll dice with 0 sides!")
+		for i in range(diceToRoll):
+			result = random.randint(1, diceSides)
+			result = eval(modifier + str(result))
+			results.append(result)
 
-	finalResult = 0
+		return results
+
+	results = []
 	finalMessage = ""
-
 
 	currStr = ""
 	dice = dice.replace(" ", "")
@@ -57,21 +72,29 @@ async def diceRoll(ctx, dice:str):
 
 	for char in dice:
 		if char in "+-":
-			newValue = resolve(currStr, modifier)
+			newValues = resolve(currStr, modifier)
 			if modifier != char:
 				modifier = char
-			finalResult += newValue
-			finalMessage += "Rolled " + str(newValue) + " on " + currStr + "\n"
+			results.extend(newValues)
+			finalMessage += "Rolled " + str(newValues) + " on " + currStr + " **(" + str(sum(newValues)) + ")** \n"
 			currStr = ""
 		else:
 			currStr += char
-	newValue = resolve(currStr, modifier)
-	finalResult += newValue
-	finalMessage += "Rolled " + str(newValue) + " on " + currStr + "\n"
+	newValues = resolve(currStr, modifier)
+	results.extend(newValues)
+	finalMessage += "Rolled " + str(newValues) + " on " + currStr + " **(" + str(sum(newValues)) + ")** \n"
+	finalResult = sum(results)
 
-	await ctx.channel.send("```" + finalMessage + "```")
-	await ctx.channel.send("```Final result: " + str(finalResult) + "```")
+	# Create embed and post it
+	rollEmbed = discord.Embed(title="Roll Results", description=finalMessage, color=0xde6b00)
+	rollEmbed.add_field(name="Final Result", value=str(finalResult), inline=False)
+	await ctx.channel.send(embed=rollEmbed)
+
+
+@diceRoll.error
+async def info_error(ctx, error):
+	if isinstance(error, commands.BadArgument):
+		await ctx.send(error)
 
 
 bot.run(TOKEN)
-
