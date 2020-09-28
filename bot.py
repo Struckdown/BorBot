@@ -7,20 +7,32 @@ from discord.ext import commands
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
-GUILD = os.getenv('DISCORD_SERVER')
+GUILD_NAME = os.getenv('DISCORD_SERVER')
+GUILD = ""	# Limits this to one guild? Probably can't cache single guild like this
+ROLE_MESSAGE_ID = int(os.getenv("DISCORD_ROLE_MESSAGE_ID"))
+FIGHTER_ID=int(os.getenv("FIGHTER_ID"))
+THIEF_ID=int(os.getenv("THIEF_ID"))
+CLERIC_ID=int(os.getenv("CLERIC_ID"))
+WIZARD_ID=int(os.getenv("WIZARD_ID"))
 
 bot = commands.Bot(command_prefix="!")
-
+roles = {
+	"⚔️":FIGHTER_ID,
+	'🗡️':THIEF_ID,
+	'✝️':CLERIC_ID,
+	'🔥':WIZARD_ID
+}
 
 @bot.event
 async def on_ready():
-    print(f'{bot.user} has connected to Discord!')
-    for guild in bot.guilds:
-        print(f'{bot.user} is connected to the following guild:\n'
-        f'{guild.name}(id: {guild.id})')
+	global GUILD
+	print(f'{bot.user} has connected to Discord!')
+	for guild in bot.guilds:
+		print(f'{bot.user} is connected to the following guild:\n'
+		f'{guild.name}(id: {guild.id})')
 
-        if guild.name == GUILD:
-            break
+		if guild.name == GUILD_NAME:
+			GUILD = guild
 
 
 @bot.command(name="roll", help="Lets roll some n-sided dice! Format is !roll 1d20+3d10-5d8+6")
@@ -96,5 +108,50 @@ async def info_error(ctx, error):
 	if isinstance(error, commands.BadArgument):
 		await ctx.send(error)
 
+
+@bot.event
+async def on_raw_reaction_add(payload):
+	user = payload.member
+	emoji = payload.emoji
+	msg_id = payload.message_id
+	if msg_id != ROLE_MESSAGE_ID:	# Only listen to specific message
+		return
+
+	newRoles = user.roles
+	if emoji.name in roles:
+		newRole = GUILD.get_role(roles[emoji.name])
+	else:
+		return 	# Do nothing on other roles
+
+	newRoles.append(newRole)
+	await user.edit(roles=newRoles)
+
+
+@bot.event
+async def on_raw_reaction_remove(payload):
+	user_id = payload.user_id
+	emoji = payload.emoji
+	msg_id = payload.message_id
+	if msg_id != ROLE_MESSAGE_ID:
+		return
+
+	user = discord.utils.find(lambda m: m.id == user_id, GUILD.members)
+	newRoles = user.roles
+	roleToRemove = ""
+	if emoji.name in roles:
+		roleToRemove = GUILD.get_role(roles[emoji.name])
+	else:
+		return	# Do nothing on other roles
+
+	roleIndex = -1
+	i = 0
+	for role in newRoles:
+		if role == roleToRemove:
+			roleIndex = i
+			break
+		i += 1
+	if roleIndex >= 0:	# Prevents it from trying to pop a role that doesn't exist
+		newRoles.pop(roleIndex)
+	await user.edit(roles=newRoles)
 
 bot.run(TOKEN)
