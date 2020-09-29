@@ -4,6 +4,7 @@ import os, random
 import discord
 from dotenv import load_dotenv
 from discord.ext import commands
+from PIL import Image, ImageDraw, ImageFont
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -153,5 +154,19 @@ async def on_raw_reaction_remove(payload):
 	if roleIndex >= 0:	# Prevents it from trying to pop a role that doesn't exist
 		newRoles.pop(roleIndex)
 	await user.edit(roles=newRoles)
+
+
+@bot.command(name="hexagon", help="Send an image with custom text. Format is !hexagon text")
+async def hexagon(ctx, text:str):
+	img = Image.open("hexagon_base.png")
+
+	d = ImageDraw.Draw(img)
+	fontsize = 40
+	font = ImageFont.truetype("arial.ttf", fontsize)
+	d.text((370,340), text, fill=(0,0,0), font=font)
+	img.save('hexagon.png')
+
+	await ctx.channel.send(file=discord.File("hexagon.png"))
+
 
 bot.run(TOKEN)
