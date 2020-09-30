@@ -3,8 +3,9 @@
 import os, random
 import discord
 from dotenv import load_dotenv
-from discord.ext import commands
+from discord.ext import commands, tasks
 from PIL import Image, ImageDraw, ImageFont
+import asyncio
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -15,6 +16,8 @@ FIGHTER_ID=int(os.getenv("FIGHTER_ID"))
 THIEF_ID=int(os.getenv("THIEF_ID"))
 CLERIC_ID=int(os.getenv("CLERIC_ID"))
 WIZARD_ID=int(os.getenv("WIZARD_ID"))
+STATUS_LOOP_INTERVAL = 5	# in seconds
+
 
 bot = commands.Bot(command_prefix="!")
 roles = {
@@ -23,6 +26,15 @@ roles = {
 	'✝️':CLERIC_ID,
 	'🔥':WIZARD_ID
 }
+
+botStatuses = [
+	[discord.ActivityType.playing, "with your heart"],
+	[discord.ActivityType.streaming, " StarCraft II"],
+	[discord.ActivityType.listening, "to the people"],
+	[discord.ActivityType.watching, "with great interest"],
+#	[discord.ActivityType.custom, "A CUSTOM STATUS?"],	# Also don't seem to work?
+	#[discord.ActivityType.competing, "with the best"],	# Unsupported until discord.py 1.5 (cur 1.4.1 at time of writing)
+]
 
 @bot.event
 async def on_ready():
@@ -34,6 +46,15 @@ async def on_ready():
 
 		if guild.name == GUILD_NAME:
 			GUILD = guild
+
+	updateBotStatus.start()
+
+
+@tasks.loop(seconds=STATUS_LOOP_INTERVAL)
+async def updateBotStatus():
+	number = random.randint(0, len(botStatuses)-1)
+	activity = discord.Activity(type=botStatuses[number][0], name=botStatuses[number][1])
+	await bot.change_presence(activity=activity)
 
 
 @bot.command(name="roll", help="Lets roll some n-sided dice! Format is !roll 1d20+3d10-5d8+6")
