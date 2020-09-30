@@ -224,7 +224,14 @@ async def magicball(ctx, *, text:str):
 
 @bot.command(name="echo", help="Have the bot say something!")
 async def echo(ctx, channel, *, text:str):
-	pass
-
+	channel = channel.replace("#", "")
+	channel = channel.replace("<", "")
+	channel = channel.replace(">", "")
+	channel = int(channel)
+	guild = ctx.guild
+	channelToPost = discord.utils.find(lambda c: c.id == channel, guild.channels)
+	if channelToPost:
+		await ctx.message.delete()
+		await channelToPost.send(text)
 
 bot.run(TOKEN)
