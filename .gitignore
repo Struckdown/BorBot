@@ -126,3 +126,8 @@ dmypy.json
 
 # Vim edited files
 *~
+
+# Bot generated files
+level.txt
+hexagon
+hexagon_base
