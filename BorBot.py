@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from discord.ext import commands, tasks
 from PIL import Image, ImageDraw, ImageFont
 import asyncio
+from diceRoller import *
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -53,6 +54,8 @@ async def on_ready():
 		f.close()
 
 
+	bot.add_cog(DiceRoller(bot))
+
 	updateBotStatus.start()
 
 
@@ -61,80 +64,6 @@ async def updateBotStatus():
 	number = random.randint(0, len(botStatuses)-1)
 	activity = discord.Activity(type=botStatuses[number][0], name=botStatuses[number][1])
 	await bot.change_presence(activity=activity)
-
-
-@bot.command(name="roll", help="Lets roll some n-sided dice! Format is !roll 1d20+3d10-5d8+6")
-async def diceRoll(ctx, dice:str):
-	'''
-	A simple dice roller that takes in arguments of the form mdn+C where C is a constant or another mdn expression
-	m and n are variables, d is the char 'd'. Also handles subtraction signs.
-	Examples:
-	!roll 1d5+3
-	!roll 10d8-2
-	!roll 1d2+1d4-1d6+1d8
-	'''
-
-	# TODO: Probably restrict user inputs more? 
-	# Reconsider using eval (pretty obvious potential vulnerability)
-	# Improve embed formatting?
-	# Transition into a seperate .py script probably? This function is pretty verbose and it would be good to keep this .py file high level functions
-
-
-	# Subfunction: Evaluates an expression of the form 1d20. Or a constant, eg: 5.
-	# Returns a list of the values (multiplies by - if passed in that modifier)
-	# Valid modifiers are '+' and '-'
-	def resolve(expr, modifier):
-		if expr == "":
-			return []
-		results = []
-		if "d" not in expr:
-			return [eval(modifier+str(expr))]
-
-		newExpr = expr.split("d")
-		diceToRoll = int(newExpr[0])
-		diceSides = int(newExpr[1])
-
-		if diceSides == 0:
-			raise commands.BadArgument(message="Cannot roll dice with 0 sides!")
-		for i in range(diceToRoll):
-			result = random.randint(1, diceSides)
-			result = eval(modifier + str(result))
-			results.append(result)
-
-		return results
-
-	results = []
-	finalMessage = ""
-
-	currStr = ""
-	dice = dice.replace(" ", "")
-	modifier = "+"
-
-	for char in dice:
-		if char in "+-":
-			newValues = resolve(currStr, modifier)
-			if modifier != char:
-				modifier = char
-			results.extend(newValues)
-			finalMessage += "Rolled " + str(newValues) + " on " + currStr + " **(" + str(sum(newValues)) + ")** \n"
-			currStr = ""
-		else:
-			currStr += char
-	newValues = resolve(currStr, modifier)
-	results.extend(newValues)
-	finalMessage += "Rolled " + str(newValues) + " on " + currStr + " **(" + str(sum(newValues)) + ")** \n"
-	finalResult = sum(results)
-
-	# Create embed and post it
-	rollEmbed = discord.Embed(title="Roll Results", description=finalMessage, color=0xde6b00)
-	rollEmbed.add_field(name="Final Result", value=str(finalResult), inline=False)
-	await ctx.channel.send(embed=rollEmbed)
-
-
-@diceRoll.error
-async def info_error(ctx, error):
-	if isinstance(error, commands.BadArgument):
-		await ctx.send(error)
 
 
 @bot.event
@@ -183,7 +112,7 @@ async def on_raw_reaction_remove(payload):
 	await user.edit(roles=newRoles)
 
 
-@bot.command(name="hexagon", help="Send an image with custom text. Format is !hexagon text")
+@bot.command(name="hexagon", brief="Send an image with custom text.", usage="text", help="Generates the hexagon image with the given text")
 async def hexagon(ctx, text:str):
 	img = Image.open("hexagon_base.png")
 
@@ -196,7 +125,7 @@ async def hexagon(ctx, text:str):
 	await ctx.channel.send(file=discord.File("hexagon.png"))
 
 
-@bot.command(name="ask", help="Recieve an answer from the bot about whatever questions you might have")
+@bot.command(name="ask", brief="Answer any question you might have.", usage="[question]", help="Recieve an answer from the bot about whatever questions you might have")
 async def magicball(ctx, *, text:str):
 
 	randomReplies = [
@@ -221,11 +150,11 @@ async def magicball(ctx, *, text:str):
 	"Outlook not so good.",
 	"Very doubtful.",
 	]
-
+	# As in true magic 8-ball style, random replies.
 	await ctx.channel.send(random.choice(randomReplies))
 
 
-@bot.command(name="echo", help="Have the bot say something!")
+@bot.command(name="echo", brief="Talk as the bot", usage="channel text", help="Have the bot say something and deletes your message. Use channel to specify which channel.")
 async def echo(ctx, channel:discord.TextChannel, *, text:str):
 	guild = ctx.guild
 	channelToPost = discord.utils.find(lambda c: c.id == channel.id, guild.channels)
@@ -234,7 +163,7 @@ async def echo(ctx, channel:discord.TextChannel, *, text:str):
 		await channelToPost.send(text)
 
 
-@bot.command(name="monitor", help="The bot is always watching")
+@bot.command(name="monitor", brief="The bot is always watching", usage="user", help="Begin monitoring this user.")
 async def monitor(ctx, user: discord.User):
 	
 	memeberToMonitor = discord.utils.find(lambda m: m.id == user.id, ctx.guild.members)
@@ -279,7 +208,7 @@ async def on_message(message):
 	await bot.process_commands(message)	# Process any commands if possible
 
 
-@bot.command(name="stats", help="Shows you this user's stats")
+@bot.command(name="stats", brief="Shows you a user's stats", usage="user", help="Gives you the amount of times this user has messaged in any chat channel the bot can access.")
 async def stats(ctx, user: discord.User):
 	message = user.name
 	with open("level.json", "r") as file:
