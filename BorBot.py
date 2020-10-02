@@ -47,8 +47,8 @@ async def on_ready():
 		if guild.name == GUILD_NAME:
 			GUILD = guild
 
-	if not os.path.exists("level.txt"):
-		f = open('level.txt', 'w+')
+	if not os.path.exists("level.json"):
+		f = open('level.json', 'w+')
 		f.write("{}")
 		f.close()
 
@@ -246,73 +246,12 @@ async def monitor(ctx, user: discord.User):
 
 @bot.command(name="generate", help="Generates a simple random RPG character")
 async def generateCharacter(ctx):
-	race = [
-	"a human",
-	"an elf",
-	"a half-elf",
-	"a half-orc",
-	"an orc",
-	"a dragonborn"
-	"a drow",
-	"an aarakocra",
-	"an aasimar",
-	"a changling",
-	"a dwarf",
-	]
-	classes = [
-	"fighter",
-	"barbarian",
-	"cleric",
-	"wizard",
-	"rogue",
-	"druid",
-	"sorcerer",
-	"warlock",
-	"bard",
-	"monk",
-	"paladin",
-	"ranger",
-	]
-	activity = [
-	"stealing",
-	"drinking",
-	"singing",
-	"dancing",
-	"smithing",
-	"questing",
-	"firestarting",
-	"sailing",
-	"arguing",
-	"weaving",
-	"crafting",
-	"playing music",
-	"traveling",
-	"games",
-	]
-	aspiration = [
-	"sail the seas",
-	"see the world",
-	"defeat their archenemy",
-	"save their family",
-	"avenge their past",
-	"found a new nation",
-	"slay a dragon",
-	"build a boat",
-	"invent something new",
-	"upset the balance",
-	"become of great importance",
-	"master the art of smithing",
-	"achieve unlimited wealth",
-	"revert a past mistake",
-	"release a friend from unjust prison",
-	"redo a key life moment",
-	"seek repentence",
-	"understand the world",
-	"perform in a band",
-	"create new foods",
-	"master a new fighting style",
-	"make a close friend"
-	]
+	with open('character.json', 'r') as file:
+		data = json.load(file)
+	race = data["races"]
+	classes = data["classes"]
+	activity = data["activities"]
+	aspiration = data["aspirations"]
 	finalMessage = "Your new character: " + random.choice(race) + " " + random.choice(classes) + " with a passion for " + random.choice(activity) + ". "
 	finalMessage += "They aspire to " + random.choice(aspiration) + " and hope to one day " + random.choice(aspiration) + "."
 	# Your new character is [an elf] [bard] with a passion for [stealing]. They aspire to [] and hope to one day [].
@@ -324,7 +263,7 @@ async def on_message(message):
 	if message.author == bot:	# Never process itself
 		return
 
-	with open('level.txt', 'r') as file:
+	with open('level.json', 'r') as file:
 		data = json.load(file)
 
 	writerID = str(message.author.id)
@@ -333,7 +272,7 @@ async def on_message(message):
 	else:
 		data[writerID] = int(data[writerID]) + 1
 
-	with open("level.txt", "w") as file:
+	with open("level.json", "w") as file:
 		json.dump(data, file)
 		file.truncate()
 
@@ -343,7 +282,7 @@ async def on_message(message):
 @bot.command(name="stats", help="Shows you this user's stats")
 async def stats(ctx, user: discord.User):
 	message = user.name
-	with open("level.txt", "r") as file:
+	with open("level.json", "r") as file:
 		data = json.load(file)
 		if str(user.id) not in data:
 			message += " has not yet gotten any xp!"
