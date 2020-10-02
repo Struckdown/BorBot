@@ -1,9 +1,10 @@
-import discord, random
+import discord, random, json
 from discord.ext import commands
 
-# A Dice Roller cog for BorBot.
+# An RPG cog for BorBot.
+# Features a dice roller and a simple character generator.
 
-class DiceRoller(commands.Cog):
+class RPGKit(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
 
@@ -93,3 +94,18 @@ class DiceRoller(commands.Cog):
 		rollEmbed = discord.Embed(title="Roll Results", description=finalMessage, color=0xde6b00)
 		rollEmbed.add_field(name="Final Result", value=str(finalResult), inline=False)
 		await ctx.channel.send(embed=rollEmbed)
+
+
+
+	@commands.command(name="generate", help="Generates a simple random RPG character")
+	async def generateCharacter(self, ctx):
+		with open('character.json', 'r') as file:
+			data = json.load(file)
+		race = data["races"]
+		classes = data["classes"]
+		activity = data["activities"]
+		aspiration = data["aspirations"]
+		finalMessage = "Your new character: " + random.choice(race) + " " + random.choice(classes) + " with a passion for " + random.choice(activity) + ". "
+		finalMessage += "They aspire to " + random.choice(aspiration) + " and hope to one day " + random.choice(aspiration) + "."
+		# Your new character is [an elf] [bard] with a passion for [stealing]. They aspire to [] and hope to one day [].
+		await ctx.channel.send(finalMessage)

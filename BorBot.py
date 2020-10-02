@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from discord.ext import commands, tasks
 from PIL import Image, ImageDraw, ImageFont
 import asyncio
-from diceRoller import *
+from RPGKit import *
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -54,7 +54,7 @@ async def on_ready():
 		f.close()
 
 
-	bot.add_cog(DiceRoller(bot))
+	bot.add_cog(RPGKit(bot))
 
 	updateBotStatus.start()
 
@@ -172,19 +172,6 @@ async def monitor(ctx, user: discord.User):
 
 	await ctx.channel.send(newMessage)
 
-
-@bot.command(name="generate", help="Generates a simple random RPG character")
-async def generateCharacter(ctx):
-	with open('character.json', 'r') as file:
-		data = json.load(file)
-	race = data["races"]
-	classes = data["classes"]
-	activity = data["activities"]
-	aspiration = data["aspirations"]
-	finalMessage = "Your new character: " + random.choice(race) + " " + random.choice(classes) + " with a passion for " + random.choice(activity) + ". "
-	finalMessage += "They aspire to " + random.choice(aspiration) + " and hope to one day " + random.choice(aspiration) + "."
-	# Your new character is [an elf] [bard] with a passion for [stealing]. They aspire to [] and hope to one day [].
-	await ctx.channel.send(finalMessage)
 
 
 @bot.event
