@@ -5,6 +5,8 @@ import discord
 from dotenv import load_dotenv
 from discord.ext import commands, tasks
 from PIL import Image, ImageDraw, ImageFont
+from bs4 import BeautifulSoup
+import urllib3
 import asyncio
 from RPGKit import *
 
@@ -17,7 +19,8 @@ FIGHTER_ID=int(os.getenv("FIGHTER_ID"))
 THIEF_ID=int(os.getenv("THIEF_ID"))
 CLERIC_ID=int(os.getenv("CLERIC_ID"))
 WIZARD_ID=int(os.getenv("WIZARD_ID"))
-STATUS_LOOP_INTERVAL = 5	# in seconds
+STATUS_LOOP_INTERVAL = 5	# seconds between status updates
+QUOTE_CHANNEL_ID = int(os.getenv("QUOTE_ID"))
 
 
 bot = commands.Bot(command_prefix="!")
@@ -57,6 +60,7 @@ async def on_ready():
 	bot.add_cog(RPGKit(bot))
 
 	updateBotStatus.start()
+	postDailyQuote.start()
 
 
 @tasks.loop(seconds=STATUS_LOOP_INTERVAL)
@@ -64,6 +68,20 @@ async def updateBotStatus():
 	number = random.randint(0, len(botStatuses)-1)
 	activity = discord.Activity(type=botStatuses[number][0], name=botStatuses[number][1])
 	await bot.change_presence(activity=activity)
+
+
+@tasks.loop(hours=24)
+async def postDailyQuote():
+	http = urllib3.PoolManager()
+	quote_page = "https://www.reddit.com/r/quotes/top/?t=day"
+	r = http.request("GET", quote_page)
+	soup = BeautifulSoup(r.data, "html.parser")
+
+	quotes = soup.find("div", attrs={"class":"rpBJOHq2PR60pnwJlUyP0"})	# How does reddit generate these class names? Do they change???
+	quote = quotes.find("h3").get_text()
+
+	channel = discord.utils.find(lambda x: x.id == QUOTE_CHANNEL_ID, GUILD.channels)
+	await channel.send(quote)
 
 
 @bot.event
