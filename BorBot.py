@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 import urllib3
 import asyncio
 from RPGKit import *
+from Music import *
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -21,6 +22,8 @@ CLERIC_ID=int(os.getenv("CLERIC_ID"))
 WIZARD_ID=int(os.getenv("WIZARD_ID"))
 STATUS_LOOP_INTERVAL = 5	# seconds between status updates
 QUOTE_CHANNEL_ID = int(os.getenv("QUOTE_ID"))
+
+DEBUG = False
 
 
 bot = commands.Bot(command_prefix="!")
@@ -58,9 +61,11 @@ async def on_ready():
 
 
 	bot.add_cog(RPGKit(bot))
+	#bot.add_cog(Music(bot))
 
 	updateBotStatus.start()
-	postDailyQuote.start()
+	if not DEBUG:
+		postDailyQuote.start()
 
 
 @tasks.loop(seconds=STATUS_LOOP_INTERVAL)
