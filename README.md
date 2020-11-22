@@ -33,4 +33,9 @@ Once your bot is attached to your server, you need to run the bot for it to show
 And that's it for setting it up (though slightly simplified and skipping small steps).
 
 # Use and Modifying the Bot
-In general, the bot tries to explain itself using the !help command. Some particular things might need additional setup to work, such as the reaction roles require you to append data to the .env file, or the image with custom text feature only supports a singular image by default but can easily be swapped out or expanded. Likewise, the daily quotes grab from quotes from Reddit, but could easily be redirected to grab HTML from somewhere else. 
+In general, the bot tries to explain itself using the !help command. Some particular things might need additional setup to work, such as the reaction roles require you to append data to the .env file, or the image with custom text feature only supports a singular image by default but can easily be swapped out or expanded. Likewise, the daily quotes grab from quotes from Reddit, but could easily be redirected to grab HTML from somewhere else.
+
+# Screenshots
+![Sample quote from Reddit](BorbotQuote.png)
+![Sample dice roll][BorbotDiceRoll.png)
+

@@ -54,6 +54,9 @@ async def on_ready():
 		if guild.name == GUILD_NAME:
 			GUILD = guild
 
+	if GUILD == "":
+		print("No guild was set correctly!")
+
 	if not os.path.exists("level.json"):
 		f = open('level.json', 'w+')
 		f.write("{}")
