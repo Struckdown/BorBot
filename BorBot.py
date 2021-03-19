@@ -39,8 +39,8 @@ botStatuses = [
 	[discord.ActivityType.streaming, " StarCraft II"],
 	[discord.ActivityType.listening, "to the people"],
 	[discord.ActivityType.watching, "with great interest"],
-#	[discord.ActivityType.custom, "A CUSTOM STATUS?"],	# Also don't seem to work?
-	#[discord.ActivityType.competing, "with the best"],	# Unsupported until discord.py 1.5 (cur 1.4.1 at time of writing)
+	#[discord.ActivityType.custom, "A CUSTOM STATUS?"],	# Don't seem to work?
+	[discord.ActivityType.competing, "life"], # Starts with "Competing in"
 ]
 
 @bot.event
