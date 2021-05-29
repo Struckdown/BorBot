@@ -109,3 +109,42 @@ class RPGKit(commands.Cog):
 		finalMessage += "They aspire to " + random.choice(aspiration) + " and hope to one day " + random.choice(aspiration) + "."
 		# Your new character is [an elf] [bard] with a passion for [stealing]. They aspire to [] and hope to one day [].
 		await ctx.channel.send(finalMessage)
+
+
+	@commands.command(name="hit", brief="Draws two hit locations", usage="Add a monster to specify subtype", help="Returns two monster hit-locations")
+	async def getHitLocation(self, ctx):
+
+
+		hitLocations = [
+		"Shoulderblade: +5 to hit; Hit - Deal 2 less damage",
+		"Forearm: Hit - Disarm foe; Fail - Become disarmed if adjacent",
+		"Shinbone: Hit - Foe loses 5ft of movement permanently",
+		"Temple: Crit on Nat 18+; -4 to hit; Hit - Foe is Stunned",
+		"Pelvis: Reposition yourself up to 5ft",
+		"Primary Hand: Hit - Foe attacks with disadvantage on next attack",
+		"Secondary Hand: +2 to hit; Hit - Deal extra 1d4 damage",
+		"Knee: -2 to hit; Hit - Foe gains -5ft movement permanently",
+		"Chest: -1AC to foe permanently",
+		"Eyes: -5 to hit; attack turns into crit; Hit - foe gains -2 to all attacks",
+		"Inner Thigh: -2 to hit; Hit - Foe is Frightened for one round",
+		"Hamstring: Hit - Foe falls prone; Fail - You are pushed back 5ft",
+		"Jaw: Hit - Silence; Fail - Become Blinded if adjacent",
+		"Gut: -2 to hit; Hit - Stun; Fail - Opportunity attack from foe if within foe's reach",
+		"Elbow: Hit - Foe movement is 0ft for one round",
+		"Knee Joint: -4 to hit; Hit - Paralyze for one round if creature is smaller than you, else deal extra 1d6 damage",
+		"Backside: Hit - Reposition enemy up to 10ft away",
+		"Foot: Hit - Foe gains disadvantage on next action; Fail - You become disadvantaged instead",
+		"Ears: Hit - Foe is deafened; Fail - You fall prone",
+		"Gonads: -6 to hit; Hit - Paralyze for one round",
+		"Heart: -10 to hit; Hit: Enemy dies immediately",
+		"Ribs: +4 to hit; Fail - Become disarmed if within foe's reach",
+		]
+
+		locations = random.sample(hitLocations,2)
+		finalMessage = locations[0] + "\nOR\n" + locations[1]
+
+		hitEmbed = discord.Embed(title="Hit Locations", description="Pick a location to hit!", color=0xFF4B45)
+		hitEmbed.add_field(name=locations[0].split(":")[0], value=locations[0].split(":")[1], inline=False)
+		hitEmbed.add_field(name=locations[1].split(":")[0], value=locations[1].split(":")[1], inline=False)
+		
+		await ctx.channel.send(embed=hitEmbed)
