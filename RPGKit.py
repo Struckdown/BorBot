@@ -111,40 +111,99 @@ class RPGKit(commands.Cog):
 		await ctx.channel.send(finalMessage)
 
 
-	@commands.command(name="hit", brief="Draws two hit locations", usage="Add a monster to specify subtype", help="Returns two monster hit-locations")
-	async def getHitLocation(self, ctx):
+	@commands.command(name="hit", brief="Draws hit locations for a monster", usage="Add a monster to specify subtype", help="Returns two monster hit-locations")
+	async def getHitLocation(self, ctx, monsterType: str="human", number=2):
+		coreLocations = {
+			"Heart": "-13 to hit; Hit: Enemy dies immediately",
+			"Jaw": "-2 to hit at range; Hit - Silence; Fail - Become Blinded if adjacent",
+			"Eyes": "-5 to hit; attack turns into crit; Hit - foe gains -2 to all attacks",
+			"Backside": "Hit - Reposition enemy up to 10ft away if adjacent",
+			"Temple": "-4 to hit, Crit on Nat 18+; Hit - Foe is Stunned",
+		}
+
+		animalLocations = {# Locations like on an owlbear. Something that doesn't wield weapons but is otherwise quadrupedal-like
+			"Shoulderblade": "+5 to hit; Hit - Deal 2 less damage",
+			"Shinbone": "Hit - Foe loses 5ft of movement permanently",
+			"Pelvis": "Reposition yourself up to 5ft",
+			"Knee": "-2 to hit; Hit - Foe gains -5ft movement permanently",
+			"Chest": "Hit - Foe loses 1AC permanently",
+			"Inner Thigh": "-2 to hit; Hit - Foe is Frightened for one round",
+			"Hamstring": "-2 to hit at range; Hit - Foe falls prone; Fail - You are pushed back 5ft if adjacent",
+			"Gut": "-2 to hit, -4 at range instead; Hit - Stun; Fail - Opportunity attack from foe if within foe's reach",
+			"Elbow": "-2 to hit at range; Hit - Foe movement is 0ft for one round",
+			"Knee Joint": "-4 to hit; Hit - Paralyze for one round if creature is smaller than you, else deal extra 1d6 damage",
+			"Foot": "Hit - Foe gains disadvantage on next action; Fail - You become disadvantaged instead",
+			"Ears": "-2 to hit at range; Hit - Foe is deafened; Fail - You fall prone",
+			"Gonads": "-6 to hit; Hit - Paralyze for one round",
+			"Ribs": "+4 to hit, +2 instead at range; Fail - Become disarmed if within foe's reach",
+		}
+		humanoidLocations = {
+			"Primary Hand": "-2 to hit at range; Hit - Foe attacks with disadvantage on next attack",
+			"Secondary Hand": "+2 to hit; Hit - Deal extra 1d4 damage",
+			"Forearm": "-2 to hit at range; Hit - Disarm foe; Fail - Become disarmed if adjacent",
+		}
+		humanoidLocations.update(animalLocations)
+		animalLocations.update(
+				{
+					"Claws": "-2 to hit; Hit - foe gains disadvantage on next action",
+					"Exposed hide": "+2 to hit; Hit - foe charges 10ft forward" 
+				}
+			)
+		sharkLocations = {	# fish like locations
+			"Snout": "+4 to hit; Fail - The laser eyes activate! Take 2d4+3 damage",
+			"Pectoral Fin": "-2 to hit; Hit - The shark gains disadvantage on its next attack",
+			"Gill slits": "-4 to hit; Hit - deal an extra d8 of damage",
+			"Dorsal fins": "+2 to hit; The shark attacks back with disadvantage",
+			"Ventral surface": "+4 to hit; deal 2 less damage",
+			"Eyes": "-5 to hit; Hit - The shark loses laser eye attack",
+			"Belly": "Attack with advantage; Hit - The shark bites back with advantage",
+			"Tail Fin": "+4 to hit; Fail - The shark whips its tail into your face, take 1d6+3 damage"
+			"Teeth": "+2 to hit; Fail - The shark bites back! Become disarmed",
+		}
+		octopusLocations = {
+			"Elongated sucker": "+4 to hit; Hit - become disarmed",
+			"Doral mantal cavity": "+2 to hit; Hit - Foe repositions 5ft",
+			"Hidden ink sac": "+2 to hit; Fail - become blinded until the end of your next turn",
+			"Kidney": "-4 to hit; Hit - attack another drawn hit location",
+			"Skull": "-4 to hit; Hit - Future attacks draw an additional location",
+			"Poison gland": "-2 to hit; Hit - Disable poison ability of foe, become Poisoned",
+			"Slimy tentacle": "Hit - deal extra 1d4 damage if using slashing weapon",
+			"Pulsating tentacle": "Hit - deal extra 1d4 damage if using slashing weapon",
+			"Massive tentacle": "+2 to hit; Hit - DC 12 Str saving throw or become grappled",
+			"Flailing tentacle": "-2 to hit; Hit - deal an extra 2 damage",
+			"Writhing tentacle": "+2 to hit; Fail - fall prone",
+		}
 
 
-		hitLocations = [
-		"Shoulderblade: +5 to hit; Hit - Deal 2 less damage",
-		"Forearm: Hit - Disarm foe; Fail - Become disarmed if adjacent",
-		"Shinbone: Hit - Foe loses 5ft of movement permanently",
-		"Temple: Crit on Nat 18+; -4 to hit; Hit - Foe is Stunned",
-		"Pelvis: Reposition yourself up to 5ft",
-		"Primary Hand: Hit - Foe attacks with disadvantage on next attack",
-		"Secondary Hand: +2 to hit; Hit - Deal extra 1d4 damage",
-		"Knee: -2 to hit; Hit - Foe gains -5ft movement permanently",
-		"Chest: -1AC to foe permanently",
-		"Eyes: -5 to hit; attack turns into crit; Hit - foe gains -2 to all attacks",
-		"Inner Thigh: -2 to hit; Hit - Foe is Frightened for one round",
-		"Hamstring: Hit - Foe falls prone; Fail - You are pushed back 5ft",
-		"Jaw: Hit - Silence; Fail - Become Blinded if adjacent",
-		"Gut: -2 to hit; Hit - Stun; Fail - Opportunity attack from foe if within foe's reach",
-		"Elbow: Hit - Foe movement is 0ft for one round",
-		"Knee Joint: -4 to hit; Hit - Paralyze for one round if creature is smaller than you, else deal extra 1d6 damage",
-		"Backside: Hit - Reposition enemy up to 10ft away",
-		"Foot: Hit - Foe gains disadvantage on next action; Fail - You become disadvantaged instead",
-		"Ears: Hit - Foe is deafened; Fail - You fall prone",
-		"Gonads: -6 to hit; Hit - Paralyze for one round",
-		"Heart: -10 to hit; Hit: Enemy dies immediately",
-		"Ribs: +4 to hit; Fail - Become disarmed if within foe's reach",
-		]
+		monsterTypes = {"shark":sharkLocations, "octopus":octopusLocations, "owlbear":animalLocations, "human":humanoidLocations, "goblin":humanoidLocations}
+		hitLocations = {}
+		hitLocations.update(coreLocations)
+		monsterType = ""
+		for monster in monsterTypes:
+			if LevenshteinFunction(monsterType.lower(), monster) <= 2:	# allows for mispellings and minor typos, as well as pluralizations (eg goblin vs goblins)
+				monsterType = monster
+				break
+		if monsterType == "":
+			monsterType = "human"
+		hitLocations.update(monsterTypes[monsterType])	# Adds new locations to the hitlocation deck
 
-		locations = random.sample(hitLocations,2)
+		locations = random.sample(sorted(hitLocations),number)
+
 		finalMessage = locations[0] + "\nOR\n" + locations[1]
-
 		hitEmbed = discord.Embed(title="Hit Locations", description="Pick a location to hit!", color=0xFF4B45)
-		hitEmbed.add_field(name=locations[0].split(":")[0], value=locations[0].split(":")[1], inline=False)
-		hitEmbed.add_field(name=locations[1].split(":")[0], value=locations[1].split(":")[1], inline=False)
-		
+		for location in locations:
+			hitEmbed.add_field(name=location, value=hitLocations[location], inline=False)	
 		await ctx.channel.send(embed=hitEmbed)
+
+
+# Returns Levenshtein distance between two strings, aka the Edit distance.
+# This is the amount of character changes needed to make to a string to convert it from a to b
+def LevenshteinFunction(a, b):
+	if len(b) == 0:
+		return len(a)
+	elif len(a) == 0:
+		return len(b)
+	elif a[0] == b[0]:
+		return LevenshteinFunction(a[1:], b[1:])
+	else:
+		return 1 + min(LevenshteinFunction(a[1:], b), LevenshteinFunction(a, b[1:]), LevenshteinFunction(a[1:], b[1:]))
