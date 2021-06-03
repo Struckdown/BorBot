@@ -157,7 +157,7 @@ class RPGKit(commands.Cog):
 			"Ventral surface": "+4 to hit; deal 2 less damage",
 			"Eyes": "-5 to hit; Hit - The shark loses laser eye attack",
 			"Belly": "Attack with advantage; Hit - The shark bites back with advantage",
-			"Tail Fin": "+4 to hit; Fail - The shark whips its tail into your face, take 1d6+3 damage"
+			"Tail Fin": "+4 to hit; Fail - The shark whips its tail into your face, take 1d6+3 damage",
 			"Teeth": "+2 to hit; Fail - The shark bites back! Become disarmed",
 		}
 		octopusLocations = {
