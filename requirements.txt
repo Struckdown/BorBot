@@ -10,6 +10,6 @@ Pillow==8.1.2
 python-dotenv==0.17.1
 soupsieve==2.0.1
 typing-extensions==3.7.4.3
-urllib3==1.25.10
+urllib3>=1.26.5
 yarl==1.6.3
 youtube-dl==2021.3.14
