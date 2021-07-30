@@ -4,9 +4,17 @@ from discord.ext import commands
 # An RPG cog for BorBot.
 # Features a dice roller and a simple character generator.
 
+class Card():
+	def __init__(self, cardName, cardEffect):
+		self.cardName = cardName
+		self.cardEffect = cardEffect
+
 class RPGKit(commands.Cog):
+
 	def __init__(self, bot):
 		self.bot = bot
+		self.currentMonsterDeck = []
+		self.currentMonsterDiscard = []
 
 	# Subfunction for roll command: Evaluates an expression of the form 1d20. Or a constant, eg: 5.
 	# Returns a list of the values (multiplies by - if passed in that modifier)
@@ -111,88 +119,138 @@ class RPGKit(commands.Cog):
 		await ctx.channel.send(finalMessage)
 
 
-	@commands.command(name="hit", brief="Draws hit locations for a monster", usage="Add a monster to specify subtype", help="Returns two monster hit-locations")
-	async def getHitLocation(self, ctx, monsterType: str="human", number=2):
-		coreLocations = {
-			"Heart": "-13 to hit; Hit: Enemy dies immediately",
-			"Jaw": "-2 to hit at range; Hit - Silence; Fail - Become Blinded if adjacent",
-			"Eyes": "-5 to hit; attack turns into crit; Hit - foe gains -2 to all attacks",
-			"Backside": "Hit - Reposition enemy up to 10ft away if adjacent",
-			"Temple": "-4 to hit, Crit on Nat 18+; Hit - Foe is Stunned",
-		}
+	@commands.command(name="setupMonster", brief="Sets up the monster deck to pull from", usage="One Str parameter from [animal, humanoid, shark, octopus, demon]", help="Internally sets up monster deck")
+	async def setupMonsterLocations(self, ctx, foe: str=""):
+		coreLocations = [
+			Card("Heart", "-10 to hit; Hit: Enemy dies immediately"),
+			Card("Jaw", "-2 to hit at range; Hit - Silence; Fail - Become Blinded if adjacent"),
+			Card("Eyes", "-5 to hit; attack turns into crit; Hit - foe gains -2 to all attacks"),
+			Card("Backside", "Hit - Reposition enemy up to 10ft away if adjacent"),
+			Card("Temple", "-4 to hit, Crit on Nat 18+; Hit - Foe is Stunned"),
+		]
 
-		animalLocations = {# Locations like on an owlbear. Something that doesn't wield weapons but is otherwise quadrupedal-like
-			"Shoulderblade": "+5 to hit; Hit - Deal 2 less damage",
-			"Shinbone": "Hit - Foe loses 5ft of movement permanently",
-			"Pelvis": "Reposition yourself up to 5ft",
-			"Knee": "-2 to hit; Hit - Foe gains -5ft movement permanently",
-			"Chest": "Hit - Foe loses 1AC permanently",
-			"Inner Thigh": "-2 to hit; Hit - Foe is Frightened for one round",
-			"Hamstring": "-2 to hit at range; Hit - Foe falls prone; Fail - You are pushed back 5ft if adjacent",
-			"Gut": "-2 to hit, -4 at range instead; Hit - Stun; Fail - Opportunity attack from foe if within foe's reach",
-			"Elbow": "-2 to hit at range; Hit - Foe movement is 0ft for one round",
-			"Knee Joint": "-4 to hit; Hit - Paralyze for one round if creature is smaller than you, else deal extra 1d6 damage",
-			"Foot": "Hit - Foe gains disadvantage on next action; Fail - You become disadvantaged instead",
-			"Ears": "-2 to hit at range; Hit - Foe is deafened; Fail - You fall prone",
-			"Gonads": "-6 to hit; Hit - Paralyze for one round",
-			"Ribs": "+4 to hit, +2 instead at range; Fail - Become disarmed if within foe's reach",
-		}
-		humanoidLocations = {
-			"Primary Hand": "-2 to hit at range; Hit - Foe attacks with disadvantage on next attack",
-			"Secondary Hand": "+2 to hit; Hit - Deal extra 1d4 damage",
-			"Forearm": "-2 to hit at range; Hit - Disarm foe; Fail - Become disarmed if adjacent",
-		}
-		humanoidLocations.update(animalLocations)
-		animalLocations.update(
-				{
-					"Claws": "-2 to hit; Hit - foe gains disadvantage on next action",
-					"Exposed hide": "+2 to hit; Hit - foe charges 10ft forward" 
-				}
+		animalLocations = [# Locations like on an owlbear. Something that doesn't wield weapons but is otherwise quadrupedal-like
+			Card("Shoulderblade", "+5 to hit; Hit - Deal 2 less damage"),
+			Card("Pelvis", "Reposition yourself up to 5ft"),
+			Card("Knee", "-2 to hit; Hit - Foe gains -5ft movement permanently"),
+			Card("Chest", "Hit - Foe loses 1AC permanently"),
+			Card("Inner Thigh", "-2 to hit; Hit - Foe is Frightened for one round"),
+			Card("Hamstring", "-2 to hit at range; Hit - Foe falls prone; Fail - You are pushed back 5ft if adjacent"),
+			Card("Gut", "-2 to hit, -4 at range instead; Hit - Stun; Fail - Opportunity attack from foe if within foe's reach"),
+			Card("Elbow", "-2 to hit at range; Hit - Foe movement is 0ft for one round"),
+			Card("Knee Joint", "-4 to hit; Hit - Paralyze for one round if creature is smaller than you, else deal extra 1d6 damage"),
+			Card("Foot", "Hit - Foe gains disadvantage on next action; Fail - You become disadvantaged instead"),
+			Card("Ears", "-2 to hit at range; Hit - Foe is deafened; Fail - You fall prone"),
+			Card("Gonads", "-6 to hit; Hit - Paralyze for one round"),
+			Card("Ribs", "+4 to hit, +2 instead at range; Fail - Become disarmed if within foe's reach"),
+		]
+		humanoidLocations = [
+			Card("Primary Hand", "-2 to hit at range; Hit - Foe attacks with disadvantage on next attack"),
+			Card("Secondary Hand", "+2 to hit; Hit - Deal extra 1d4 damage"),
+			Card("Forearm", "-2 to hit at range; Hit - Disarm foe; Fail - Become disarmed if adjacent"),
+		]
+		humanoidLocations.extend(animalLocations)
+		animalLocations.extend(
+				[
+					Card("Claws", "-2 to hit; Hit - foe gains disadvantage on next action"),
+					Card("Exposed hide", "+2 to hit; Hit - foe charges 10ft forward"),
+				]
 			)
-		sharkLocations = {	# fish like locations
-			"Snout": "+4 to hit; Fail - The laser eyes activate! Take 2d4+3 damage",
-			"Pectoral Fin": "-2 to hit; Hit - The shark gains disadvantage on its next attack",
-			"Gill slits": "-4 to hit; Hit - deal an extra d8 of damage",
-			"Dorsal fins": "+2 to hit; The shark attacks back with disadvantage",
-			"Ventral surface": "+4 to hit; deal 2 less damage",
-			"Eyes": "-5 to hit; Hit - The shark loses laser eye attack",
-			"Belly": "Attack with advantage; Hit - The shark bites back with advantage",
-			"Tail Fin": "+4 to hit; Fail - The shark whips its tail into your face, take 1d6+3 damage",
-			"Teeth": "+2 to hit; Fail - The shark bites back! Become disarmed",
-		}
-		octopusLocations = {
-			"Elongated sucker": "+4 to hit; Hit - become disarmed",
-			"Doral mantal cavity": "+2 to hit; Hit - Foe repositions 5ft",
-			"Hidden ink sac": "+2 to hit; Fail - become blinded until the end of your next turn",
-			"Kidney": "-4 to hit; Hit - attack another drawn hit location",
-			"Skull": "-4 to hit; Hit - Future attacks draw an additional location",
-			"Poison gland": "-2 to hit; Hit - Disable poison ability of foe, become Poisoned",
-			"Slimy tentacle": "Hit - deal extra 1d4 damage if using slashing weapon",
-			"Pulsating tentacle": "Hit - deal extra 1d4 damage if using slashing weapon",
-			"Massive tentacle": "+2 to hit; Hit - DC 12 Str saving throw or become grappled",
-			"Flailing tentacle": "-2 to hit; Hit - deal an extra 2 damage",
-			"Writhing tentacle": "+2 to hit; Fail - fall prone",
-		}
+		sharkLocations = [	# fish like locations
+			Card("Snout", "+4 to hit; Fail - The laser eyes activate! Take 2d4+3 damage"),
+			Card("Pectoral Fin", "-2 to hit; Hit - The shark gains disadvantage on its next attack"),
+			Card("Gill slits", "-4 to hit; Hit - deal an extra d8 of damage"),
+			Card("Dorsal fins", "+2 to hit; The shark attacks back with disadvantage"),
+			Card("Ventral surface", "+4 to hit; deal 2 less damage"),
+			Card("Eyes", "-5 to hit; Hit - The shark loses laser eye attack"),
+			Card("Belly", "Attack with advantage; Hit - The shark bites back with advantage"),
+			Card("Tail Fin", "+4 to hit; Fail - The shark whips its tail into your face, take 1d6+3 damage"),
+			Card("Teeth", "+2 to hit; Fail - The shark bites back! Become disarmed"),
+		]
+		octopusLocations = [
+			Card("Elongated sucker", "+4 to hit; Hit - become disarmed"),
+			Card("Doral mantal cavity", "+2 to hit; Hit - Foe repositions 5ft"),
+			Card("Hidden ink sac", "+2 to hit; Fail - become blinded until the end of your next turn"),
+			Card("Kidney", "-4 to hit; Hit - attack another drawn hit location"),
+			Card("Skull", "-4 to hit; Hit - Future attacks draw an additional location"),
+			Card("Poison gland", "-2 to hit; Hit - Disable poison ability of foe, become Poisoned"),
+			Card("Slimy tentacle", "Hit - deal extra 1d4 damage if using slashing weapon"),
+			Card("Pulsating tentacle", "Hit - deal extra 1d4 damage if using slashing weapon"),
+			Card("Massive tentacle", "+2 to hit; Hit - DC 12 Str saving throw or become grappled"),
+			Card("Flailing tentacle", "-2 to hit; Hit - deal an extra 2 damage"),
+			Card("Writhing tentacle", "+2 to hit; Fail - fall prone"),
+		]
 
+		demonLocations = [
+			Card("Void Blade", "-4 to hit; Hit - Demon strikes back at -4 with the blade; Fail - Deal an extra 2d6 damage"),
+			Card("Demon Heart", "Hit - Demon moves 30ft (does not trigger AoO)"),
+			Card("Cursed Eyes", "Hit - Demon strikes back with disadvantage; Fail - Demon strikes back with advantage"),
+			Card("Blighted Shin", "Hit - Be kicked 10ft or fall prone"),
+			Card("Fetid Face", "Hit - Attack becomes a crit. Move the demon 10ft, all enemies in a 15ft cone make a Dex DC 16 check, taking 3d6 acid damage or half on success"),
+			Card("Demonic Femur", "Fail - Reposition yourself 10ft, demon moves upto 30ft to end beside you"),
+			Card("The Maw of Death", "Hit - All demon's foes within range 60ft are pulled in 10ft"),
+			Card("Defiled Chest", "Gain +2 to hit this location, but attack with disadvantage"),
+			Card("Cursed Rump", "Always hits health (only roll to see if crit). Demon responds by attacking back."),
+			Card("Unsightly Mandible", "Fail: Take 1d4+2 damage if within 15ft"),
+			Card("Rotting Wings", "Reposition demon 10ft, take 1d6+2 fire damage if within 5ft during any point of the movement"),
+			Card("Flaming Skull", "Take 1d6+2 fire damage; Hit - Take another 1d6+2 fire damage"),
+			Card("Forbidden Backside", "If you have no armor, gain advantage on this attack, else gain disadvantage"),
+			Card("Grotesque Hoof", "-2 to hit"),
+			Card("Unholy Chest", "+2 to hit; Hit - Demon attempts a grapple check against you"),
+			Card("Corrupted Arms", "Crits on nat 18+, always hits armor. Fail - Take 1d6+2 armor damage (cannot hurt health)"),
+			Card("Abhorid Protrusions", "Crits hit armor at this location"),
+			Card("Curved Horns", "Your attack does no damage. Instead, regain the use of an ability gained at 5th level or lower"),
+			Card("Forgotten Backhand", "Deals double damage if there is no armor left. Fail: Take 1d6+5 bludgeoning damage, 1d6+2 fire damage and get knocked back 15ft"),
+		]
 
-		monsterTypes = {"shark":sharkLocations, "octopus":octopusLocations, "owlbear":animalLocations, "human":humanoidLocations, "goblin":humanoidLocations}
-		hitLocations = {}
-		hitLocations.update(coreLocations)
+		monsterTypes = {"shark":sharkLocations, "octopus":octopusLocations, "owlbear":animalLocations, "human":humanoidLocations, "goblin":humanoidLocations, "demon":demonLocations}
+		hitLocations = []
+		hitLocations.extend(coreLocations)
 		monsterType = ""
 		for monster in monsterTypes:
-			if LevenshteinFunction(monsterType.lower(), monster) <= 2:	# allows for mispellings and minor typos, as well as pluralizations (eg goblin vs goblins)
+			if LevenshteinFunction(foe.lower(), monster) <= 2:	# allows for mispellings and minor typos, as well as pluralizations (eg goblin vs goblins)
 				monsterType = monster
 				break
-		if monsterType == "":
+		if monsterType == "":	# monster not found, assume human
 			monsterType = "human"
-		hitLocations.update(monsterTypes[monsterType])	# Adds new locations to the hitlocation deck
+		hitLocations.extend(monsterTypes[monsterType])	# Adds new locations to the hitlocation deck
+		if monsterType == "demon":
+			hitLocations = demonLocations	# demons are immune to other locations?
 
-		locations = random.sample(sorted(hitLocations),number)
+		random.shuffle(hitLocations)
+		self.currentMonsterDeck = hitLocations
+		self.currentMonsterDiscard = []	# reset the discard
 
-		finalMessage = locations[0] + "\nOR\n" + locations[1]
-		hitEmbed = discord.Embed(title="Hit Locations", description="Pick a location to hit!", color=0xFF4B45)
+		finalMessage = "Successfully set up: " + monsterType
+		await ctx.channel.send(finalMessage)
+
+
+	@commands.command(name="hit", brief="Draws hit locations for a monster", usage="Add a monster to specify subtype", help="Returns two monster hit-locations")
+	async def getHitLocation(self, ctx, number=2):
+		
+		# Ensure upper bounds
+		if number > len(self.currentMonsterDeck) + len(self.currentMonsterDiscard):
+			number = len(self.currentMonsterDeck) + len(self.currentMonsterDiscard)
+
+		locations = []
+		cardsToStillPull = number
+
+		while cardsToStillPull > 0:
+			if len(self.currentMonsterDeck) == 0:	# check if we need to reshuffle
+				self.currentMonsterDeck = self.currentMonsterDiscard
+				random.shuffle(self.currentMonsterDeck)
+				self.currentMonsterDiscard = []
+				await ctx.channel.send("Shuffled the deck after drawing the remaining cards!")
+
+			card = self.currentMonsterDeck.pop()
+			locations.append(card)
+			cardsToStillPull -= 1
+
+		self.currentMonsterDiscard.extend(locations)	# populate the discard with all drawn cards
+
+		hitEmbed = discord.Embed(title="Hit Locations", description="Pick a location to hit! **" + str(len(self.currentMonsterDeck)) + "** cards remain in the deck", color=0xFF4B45)
 		for location in locations:
-			hitEmbed.add_field(name=location, value=hitLocations[location], inline=False)	
+			hitEmbed.add_field(name=location.cardName, value=location.cardEffect, inline=False)	
 		await ctx.channel.send(embed=hitEmbed)
 
 
