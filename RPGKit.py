@@ -9,12 +9,41 @@ class Card():
 		self.cardName = cardName
 		self.cardEffect = cardEffect
 
+class Token():
+	def __init__(self, tokenName=None, tokenValue:int=0, tokenEffect=None):
+		self.name = tokenName
+		self.value = int(tokenValue)
+		self.effect = tokenEffect
+
+	def print(self):
+		finalStr = ""
+		if self.name:
+			finalStr += self.name + ": "
+		if self.value >= 0:	# no need to add -, that is already printed by default
+			finalStr += "+"
+		finalStr += str(self.value)
+		if self.effect:
+			finalStr += ", " + self.effect
+		return finalStr
+
 class RPGKit(commands.Cog):
 
 	def __init__(self, bot):
 		self.bot = bot
 		self.currentMonsterDeck = []
 		self.currentMonsterDiscard = []
+		self.bag = []	# an array of tokens, meant to be shuffled before each draw
+		self.bagDefault = []
+		for value in [-4, -3, -2, -2, -1, -1, 0, 0, +1]:
+			token = Token(None, value, None)
+			self.bagDefault.append(token)
+		token = Token("Auto Fail", 0, "Your check becomes a total of 0"); self.bagDefault.append(token)
+		token = Token("Auto Success", 0, "Your check becomes the DC"); self.bagDefault.append(token)
+		token = Token("Unfortunate Luck", +2, "Lose a resource or a health point"); self.bagDefault.append(token)
+		token = Token("Character Token", 0, "Activate your character ability"); self.bagDefault.append(token)
+		token = Token("Encounter Token", 0, "Encounter ability triggers"); self.bagDefault.append(token)
+		token = Token("Encounter Token", 0, "Encounter ability triggers"); self.bagDefault.append(token)
+		self.bag = self.bagDefault
 
 	# Subfunction for roll command: Evaluates an expression of the form 1d20. Or a constant, eg: 5.
 	# Returns a list of the values (multiplies by - if passed in that modifier)
@@ -48,6 +77,69 @@ class RPGKit(commands.Cog):
 			results.append(result)
 
 		return results
+
+	@commands.command(name="reset", brief="Reset the bag", help="Resets the bag to the default state")
+	async def resetBag(self, ctx):
+		self.bag = self.bagDefault
+
+
+	@commands.command(name="setDefault", usage="!setDefault {[{name:None, value:1, effect:None}, -1, -3, 'autoFail', ...]", brief="Setup a new default configuration", help="Takes in an array of dicts in the format of Token")
+	async def setDefaultBag(self, ctx, elements):
+		#TODO
+		await ctx.channel.send("This function is unsupported at this time. Maybe someday though!")
+		return
+
+	@commands.command(name="addToken", usage="!addToken Fire 0 'Take 1 damage'", brief="Adds a new token to the bag")
+	async def addTokenToBag(self, ctx, name, value, effect):
+		try:
+			int(value)
+		except:
+			await ctx.channel.send("Your second argument must be an integer (eg, !addToken Fire 0 'Take 1 damage'")
+			return
+		token = Token(name, value, effect)
+		self.bag.append(token)
+		await ctx.channel.send(token.print() + " was added to the bag")
+
+	@commands.command(name="draw", brief="Pull from the chaos bag...", usage="!draw X", help="X is the number of tokens to draw")
+	async def bagPull(self, ctx, number:int=1):
+		'''
+		A simple bag of tokens that are to be drawn from.
+		'''
+		if number < 1 or number > len(self.bag):
+			await ctx.channel.send("Please draw up to " + str(len(self.bag)) + " tokens")
+			return
+		random.shuffle(self.bag)
+
+		if number == 1:
+			await ctx.channel.send("```"+self.bag[0].print()+"```")
+			return
+
+		result = discord.Embed(title="Tokens drawn", color=0xFF4B45)
+		for i in range(number):
+			token = self.bag[i]
+			name = token.name
+			if name == None:
+				name = 'Numeric'
+			effect = token.effect
+			if effect == None:
+				effect = ''
+			else:
+				effect = ", " + effect
+			value = token.value
+			if value >= 0:
+				value = "+" + str(value)
+			result.add_field(name=name, value=str(value) + effect, inline=False)	
+		await ctx.channel.send(embed=result)
+
+		
+	@commands.command(name="peek", brief="Inspect the contents of the bag", usage="!peek", help="Shows the contents of the bag")
+	async def showContents(self, ctx):
+		finalStr = "```"
+		for token in self.bag:
+			finalStr += token.print() + "\n"
+		finalStr += "```"
+		await ctx.channel.send(finalStr)
+
 
 	@commands.command(name="roll", brief="Lets roll some n-sided dice!", usage="x 'd' y [+C...]", help="x is an integer, 'd' is a literal, y is an integer >0, C is a constant")
 	async def diceRoll(self, ctx, dice:str):
@@ -182,25 +274,42 @@ class RPGKit(commands.Cog):
 		]
 
 		demonLocations = [
-			Card("Void Blade", "-4 to hit; Hit - Demon strikes back at -4 with the blade; Fail - Deal an extra 2d6 damage"),
-			Card("Demon Heart", "Hit - Demon moves 30ft (does not trigger AoO)"),
+			Card("Void Blade", "-4 to hit; Hit - If within 10ft, the demon strikes back at -4 with the blade; Fail - You deal an extra 2d6 damage"),
+			Card("Fel Thighs", "Hit - Demon moves 30ft (does not trigger AoO)"),
 			Card("Cursed Eyes", "Hit - Demon strikes back with disadvantage; Fail - Demon strikes back with advantage"),
-			Card("Blighted Shin", "Hit - Be kicked 10ft or fall prone"),
-			Card("Fetid Face", "Hit - Attack becomes a crit. Move the demon 10ft, all enemies in a 15ft cone make a Dex DC 16 check, taking 3d6 acid damage or half on success"),
+			Card("Blighted Shin", "Hit - Demon moves upto 60ft (does not trigger AoO) towards you. If it is beside you, it punts you. Move 10ft or fall prone"),
+			Card("Fetid Face", "Hit - Attack becomes a crit. Move the demon 10ft, all enemies in a 15ft cone make a Dex DC 16 check, taking 3d6 acid health damage or half on success"),
 			Card("Demonic Femur", "Fail - Reposition yourself 10ft, demon moves upto 30ft to end beside you"),
 			Card("The Maw of Death", "Hit - All demon's foes within range 60ft are pulled in 10ft"),
 			Card("Defiled Chest", "Gain +2 to hit this location, but attack with disadvantage"),
-			Card("Cursed Rump", "Always hits health (only roll to see if crit). Demon responds by attacking back."),
-			Card("Unsightly Mandible", "Fail: Take 1d4+2 damage if within 15ft"),
-			Card("Rotting Wings", "Reposition demon 10ft, take 1d6+2 fire damage if within 5ft during any point of the movement"),
-			Card("Flaming Skull", "Take 1d6+2 fire damage; Hit - Take another 1d6+2 fire damage"),
-			Card("Forbidden Backside", "If you have no armor, gain advantage on this attack, else gain disadvantage"),
+			Card("Cursed Rump", "Always hits health (only roll to see if it crits). Demon responds by attacking back."),
+			Card("Unsightly Mandible", "Fail: Take 2d4+2 psychic health damage if within 15ft"),
+			Card("Rotting Wings", "Reposition demon 10ft, take 1d6+2 fire damage to armor if within 5ft during any point of the movement"),
+			Card("Flaming Skull", "Take 1d6+2 fire damage to armor; Hit - Take 1d6+2 fire damage to health as well"),
+			Card("Forbidden Backside", "If you have no armor points, gain advantage on this attack, else gain disadvantage"),
 			Card("Grotesque Hoof", "-2 to hit"),
 			Card("Unholy Chest", "+2 to hit; Hit - Demon attempts a grapple check against you"),
-			Card("Corrupted Arms", "Crits on nat 18+, always hits armor. Fail - Take 1d6+2 armor damage (cannot hurt health)"),
-			Card("Abhorid Protrusions", "Crits hit armor at this location"),
-			Card("Curved Horns", "Your attack does no damage. Instead, regain the use of an ability gained at 5th level or lower"),
-			Card("Forgotten Backhand", "Deals double damage if there is no armor left. Fail: Take 1d6+5 bludgeoning damage, 1d6+2 fire damage and get knocked back 15ft"),
+			Card("Corrupted Arms", "Crits on nat 18+, always hits armor. Fail - Take 1d6+2 armor damage. This reaction cannot hurt health"),
+			Card("Abhorid Protrusions", "Crits hit armor points first at this location"),
+			Card("Curved Horns", "BLESSED CARD: Your attack does no damage. Instead, regain the use of an ability gained at 5th level or lower"),
+			Card("Forgotten Backhand", "Deals double damage if the monster has no armor points. Fail: Take 1d6+5 bludgeoning damage, 1d6+2 fire damage and get knocked back 15ft"),
+			Card("Scorched Breastplate", "TRAP CARD: You must pick this card. Your attack always hits armor points. After your attack resolves, the demon casts Greater Fireball (12d6) on its position!"),
+			# Spellcasters tend to ignore this mechanic. Maybe use legendary actions if you don't pull from the monster's hit location deck?
+		]
+
+		fateCards = [
+			Card("Death comes for us all", "Choose a player. They lose half their current hitpoints (rounded down)"),
+			Card("Phantom Knives", "Take x damage OR have The Guardian perform an attack against all of your allies within 15ft of you"),
+			Card("The Haunting", "The Guardian teleports to an adjacent location to a player of your choice and performs an attack"),
+			Card("The Blood Runs Dry", "Until the end of your next turn, all damage done to The Guardian is also dealt to you OR choose a player, they take an attack from the Guardian"),
+			Card("The Void Hungers", "Pick a player. That player and the Guardian gain vulnerability to Necrotic damage"),
+			Card("Mass Frenzy", "The Guardian recovers x health OR the next player to act must perform a hostile action against another player"),
+			Card("The Reckoning", "The Guardian summons a void golem OR you must make a DC 17 dex saving throw. You are pushed 30ft (15ft on a save) in a random direction (roll d8). Collisions deal 1d8+5 bludgeoning damage"),
+			Card("Fate Calls", "At the start of your next turn, the player closest to the Guardian (all tied players in case of a tie) dies immediately if they have less than 10 hitpoints remaining."),
+			Card("Force Shadows", "Pick a player, you and that player must each make a DC 17 dex saving throw or be tossed 15ft towards the other. If you collide, take x damage"),
+			Card("The Calling", "Pick a player, they disappear and rematerialize adjacent to The Guardian")
+
+
 		]
 
 		monsterTypes = {"shark":sharkLocations, "octopus":octopusLocations, "owlbear":animalLocations, "human":humanoidLocations, "goblin":humanoidLocations, "demon":demonLocations}
