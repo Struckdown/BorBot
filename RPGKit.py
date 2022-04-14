@@ -100,6 +100,18 @@ class RPGKit(commands.Cog):
 		self.bag.append(token)
 		await ctx.channel.send(token.print() + " was added to the bag")
 
+	@commands.command(name="removeToken", usage="!removeToken 7'", brief="Removes the nth token from the bag")
+	async def removeTokenFromBag(self, ctx, position:int):
+		if len(self.bag) == 0:
+			await ctx.channel.send("The contents of the bag are empty, nothing can be removed!")
+			return
+		if position > len(self.bag) or position < 0:
+			await ctx.channel.send("Please provide a token number to remove between 0 and " + str(len(self.bag)-1))
+			return
+		token = self.bag.pop(position)
+		await ctx.channel.send(token.print() + " was removed from the bag")
+
+
 	@commands.command(name="draw", brief="Pull from the chaos bag...", usage="!draw X", help="X is the number of tokens to draw")
 	async def bagPull(self, ctx, number:int=1):
 		'''
@@ -134,9 +146,12 @@ class RPGKit(commands.Cog):
 		
 	@commands.command(name="peek", brief="Inspect the contents of the bag", usage="!peek", help="Shows the contents of the bag")
 	async def showContents(self, ctx):
-		finalStr = "```"
+		finalStr = "```There are " + str(len(self.bag)) + " tokens in the bag.\n"
+		i=0
 		for token in self.bag:
+			finalStr += str(i) + ": "
 			finalStr += token.print() + "\n"
+			i+=1
 		finalStr += "```"
 		await ctx.channel.send(finalStr)
 
