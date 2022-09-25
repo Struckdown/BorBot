@@ -25,8 +25,9 @@ QUOTE_CHANNEL_ID = int(os.getenv("QUOTE_ID"))
 
 DEBUG = False
 
+intents = discord.Intents().all()
+bot = commands.Bot(command_prefix="!", intents=intents)
 
-bot = commands.Bot(command_prefix="!")
 roles = {
 	"⚔️":FIGHTER_ID,
 	'🗡️':THIEF_ID,
@@ -37,7 +38,7 @@ roles = {
 botStatuses = [
 	[discord.ActivityType.playing, "with your heart"],
 	[discord.ActivityType.streaming, " StarCraft II"],
-	[discord.ActivityType.listening, "to the people"],
+	[discord.ActivityType.listening, "the people"],
 	[discord.ActivityType.watching, "with great interest"],
 	#[discord.ActivityType.custom, "A CUSTOM STATUS?"],	# Don't seem to work?
 	[discord.ActivityType.competing, "life"], # Starts with "Competing in"
@@ -62,13 +63,14 @@ async def on_ready():
 		f.write("{}")
 		f.close()
 
+#	loop = asyncio.new_event_loop()  # *new*_event_loop
 
-	bot.add_cog(RPGKit(bot))
+	await bot.add_cog(RPGKit(bot))
 	#bot.add_cog(Music(bot))
 
 	updateBotStatus.start()
-	if not DEBUG:
-		postDailyQuote.start()
+	#if not DEBUG:
+	#	postDailyQuote.start()
 
 
 @tasks.loop(seconds=STATUS_LOOP_INTERVAL)
@@ -229,8 +231,22 @@ async def stats(ctx, user: discord.User):
 		if str(user.id) not in data:
 			message += " has not yet gotten any xp!"
 		else:
+			xp = int(data[str(user.id)])
 			message += " has " + str(data[str(user.id)]) + " xp!"
-
+			if xp > 1000:
+				message += " They are ranked as a True Hero. Well done!"
+			elif xp > 500:
+				message += " They are ranked as a Mighty Wizard. They have begun to comprehend the meaning of the universe!"
+			elif xp > 250:
+				message += " They are ranked as a High Knight! Sword not included."
+			elif xp > 125:
+				message += " They are ranked as an Established Guard! Thank you for your contributions!"
+			elif xp > 75:
+				message += " They are ranked as a Promising Squire! The Council believes in you."
+			elif xp > 25:
+				message += " They are ranked as a Beginner. Keep on growing!"
+			else:
+				message += " They do not have any official ranking yet. More research is needed."
 	await ctx.channel.send(message)
 
 bot.run(TOKEN)

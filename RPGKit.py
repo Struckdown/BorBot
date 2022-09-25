@@ -34,15 +34,13 @@ class RPGKit(commands.Cog):
 		self.currentMonsterDiscard = []
 		self.bag = []	# an array of tokens, meant to be shuffled before each draw
 		self.bagDefault = []
-		for value in [-4, -3, -2, -2, -1, -1, 0, 0, +1]:
+		for value in [-8, -4, -3, -2, -2, -1, -1, 0, 0, +1, +4]:
 			token = Token(None, value, None)
 			self.bagDefault.append(token)
-		token = Token("Auto Fail", 0, "Your check becomes a total of 0"); self.bagDefault.append(token)
-		token = Token("Auto Success", 0, "Your check becomes the DC"); self.bagDefault.append(token)
-		token = Token("Unfortunate Luck", +2, "Lose a resource or a health point"); self.bagDefault.append(token)
-		token = Token("Character Token", 0, "Activate your character ability"); self.bagDefault.append(token)
-		token = Token("Encounter Token", 0, "Encounter ability triggers"); self.bagDefault.append(token)
-		token = Token("Encounter Token", 0, "Encounter ability triggers"); self.bagDefault.append(token)
+		token = Token("Unfortunate Fortune", +2, "Lose a resource or a health point"); self.bagDefault.append(token)
+		token = Token("Hero Token", 0, "Activate your character ability"); self.bagDefault.append(token)
+		token = Token("Encounter Token", 0, "Encounter specific trigger"); self.bagDefault.append(token)
+		token = Token("Encounter Token", 0, "Encounter specific trigger"); self.bagDefault.append(token)
 		self.bag = self.bagDefault
 
 	# Subfunction for roll command: Evaluates an expression of the form 1d20. Or a constant, eg: 5.
